@@ -1,0 +1,44 @@
+function calendarUpdateDetect(e) {
+  // This is using Calendar API v3 to determine if it's cancelled or not.
+  // Also using default Calendarapp for updation because it's just more useful for datetime.
+  // For "Attendee Size" is designed to detect "<" and ">" only(in html state), and they are being replaced back to normal text.
+  // Let me know if there are any other variation poped up(meaing any letters failed to be substituted) or any bugs of course.
+
+
+  // const calId = e.calendarId;
+  // Manual calenderID input for testing↓↓  let's go along with manual input instead of using e argument
+  const calId = "{YOUR CALENDAR ID}";
+  const cal=CalendarApp.getCalendarById(calId);
+  
+  //Getting Sheets info
+  const sheet=SpreadsheetApp.getActiveSpreadsheet().getSheetByName("TARGETED SHEET NAME");  
+  //looping as long as event ID is filled in
+  //looping form last to row#2(backwards) because deletion could happen
+  const lastR=sheet.getRange(sheet.getMaxRows(), 1).getNextDataCell(SpreadsheetApp.Direction.UP).getRow();//making sure it is the last of Column A
+
+  for(let i=lastR ; i >=2;i--){
+    let id=sheet.getRange(i,1).getValue();
+    let eventD=Calendar.Events.get(calId,id);
+    let status=eventD.status;
+    if(status=='cancelled'){
+      sheet.deleteRow(i);
+    }else{
+      let event=cal.getEventById(id);
+      let start=event.getStartTime();
+      let end=event.getEndTime();
+      sheet.getRange(i,2).setValue(start);
+      sheet.getRange(i,3).setValue(end);
+      sheet.getRange(i,4).setValue(event.getLocation());
+      sheet.getRange(i,6).setValue((end-start)/1000/60/60);
+
+      let desC=event.getDescription().replace(/<[^>]+>/g, "");
+      let atSize=desC.match(/&lt;\d+|\d+-\d+/gi).toString();
+      let ticket=desC.match(/https:\/\/help.*tickets\/\d*/i).toString();
+      sheet.getRange(i,9).setValue(atSize.replace("&lt;","<").replace("&gt;",">"));
+      sheet.getRange(i,10).setValue(ticket);
+    };
+    
+
+  };
+
+}
